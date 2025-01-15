@@ -6,6 +6,7 @@
 #include "driver/i2c.h"
 #include "ads1115.h"
 #include "dac.h"
+#include <inttypes.h>
 
 // Define GPIO pins
 #define GPIO_PIN_25 25
@@ -19,6 +20,22 @@
 // #define GPIO_NUM_0 0
 #define i2c_port I2C_NUM_0
 #define address 0x48
+
+
+int dochannels[4] = {
+        GPIO_PIN_25, // Channel 0
+        GPIO_PIN_26, // Channel 1
+        GPIO_PIN_27, // Channel 2
+        GPIO_PIN_14  // Channel 3
+    };
+
+int dichannels[4] = {
+        GPIO_PIN_33, // Channel 0
+        GPIO_PIN_32, // Channel 1
+        GPIO_PIN_35, // Channel 2
+        GPIO_PIN_34  // Channel 3
+    };
+
 
 
 void i2c_master_init() {
@@ -37,77 +54,37 @@ void i2c_master_init() {
 }
 
 
-// static QueueHandle_t gpio_evt_queue NULL;
-// static void IRAM_ATTR gpio_isr_handler(void*arg){
-//     uint32_t gpio_num = (uint32_t) arg;
-//     xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
 
-// }
-// static void gpio_task_example(void*arg){
-//     uint32_t io_num;
-//     for(;;){
-//         if(xQueueSendFromISR(gpio_evt_queue, &io_num, portMAX_DELAY);){
-//             printf("GPIO[%"PRIu32"] intr, val:%d\n",io_num, gpio_get_level(io_num));
-//         }
-//     }
-
-// }
-
-
-int dochannels[4] = {
-        GPIO_PIN_25, // Channel 0
-        GPIO_PIN_26, // Channel 1
-        GPIO_PIN_27, // Channel 2
-        GPIO_PIN_14  // Channel 3
-    };
-
-int dichannels[4] = {
-        GPIO_PIN_33, // Channel 0
-        GPIO_PIN_32, // Channel 1
-        GPIO_PIN_35, // Channel 2
-        GPIO_PIN_34  // Channel 3
-    };
 
 void dochannel(int i, bool set) {
-    if(i>4)i=4;
+    if(i>4)i=3;
     gpio_set_level(dochannels[i], set);
-
 
     ESP_LOGI("GPIO", "Digital Output channel:%d is set %d\n",i,set);
 }
 
-int dichannel(int i) {
-    // if (i >= 4 || i < 0) {
-    //     ESP_LOGE("GPIO", "Invalid channel index: %d", i);
-    //     return -1; // Error: Invalid channel index
-    // }
 
-    int didata[4]; // Array to store digital input states
-
-    // Read input levels for all channels
-    for (int j = 0; j < 4; j++) {
-        didata[j] = gpio_get_level(dichannels[j]);
+unsigned int dichannel(int i) {
+    if(i>4)i=3;
+    esp_rom_gpio_pad_select_gpio(dichannels[i]);
+    gpio_set_direction(dichannels[i], GPIO_MODE_INPUT);
+    gpio_pulldown_en(dichannels[i]);
+    gpio_pullup_dis(dichannels[i]);
+    gpio_set_intr_type(dichannels[i], GPIO_INTR_POSEDGE);
+    for(int j=0;j<15;j++){    
+        if(gpio_get_level(dichannels[i])==1){
+        return 1;}
     }
-
-    ESP_LOGI("GPIO", "Digital Input Data for channel %d: %d", i, didata[i]);
-    return didata[i]; // Return the state of the requested channel
-
-    // while (true) {
-    //     for (int i = 0; i < num_pins; i++) {
-    //         int level = gpio_get_level(input_pins[i]);
-    //         ESP_LOGI(TAG, "GPIO %d level: %d", input_pins[i], level);
-    //     }
-    //     vTaskDelay(pdMS_TO_TICKS(1000)); // Delay 1 second
-    // }
+    return 0;
 }
 
 
 void dacchannels(int channel, uint16_t value) {
-    if(channel>4)channel=4;
-    if(value>4095)value=4095;
+    if(channel>4){channel = 3;}
+    if(value> 4095){value = 4095;}
     esp_err_t ret = mcp4728_write_dac(channel,value);
     if (ret == ESP_OK) {
-        printf("DAC channel %d: set successfully with value:%X\n",channel,value);
+        printf("DAC channel %d: set successfully with value:%X\n", channel, value);
     } else {
         printf("Error setting DAC channel %d: %s\n",channel, esp_err_to_name(ret));
     }
@@ -162,30 +139,7 @@ void app_main() {
     i2c_master_init();
     gpio_output_init();
     gpio_input_init();
-    while(1){
-        int i;
-        for(i = 0; i < 4; i++) {
-            // dochannel(i, true);
-        //    int val= dichannel(i);
-            dacchannels(i, 2048);
-            // voltage = adcvoltage(i);
-            // printf("Voltage for channel %d: %d\n",i,val);
-            // dochannel(i, 0);
-        }
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
-        i=0;
-        for(i = 0; i < 4; i++) {
-            // dochannel(i, true);
-        //    int val= dichannel(i);
-            dacchannels(i, 0);
-            // voltage = adcvoltage(i);
-            // printf("Voltage for channel %d: %d\n",i,val);
-            // dochannel(i, 0);
-        }
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
-        i=0;
-      
 
-    }
+    
 
 }

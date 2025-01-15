@@ -14,25 +14,25 @@
 
 
 esp_err_t mcp4728_write_dac(int channel, uint16_t value) {
-   uint8_t command;
+uint8_t command;
 switch (channel) { // Select channel
     case 0:
-        command = 0x40;
-        break;
-    case 1:
         command = 0x43;
         break;
+    case 1:
+        command = 0x40;
+        break;
     case 2:
-        command = 0x44;
+        command = 0x46;
         break;
     case 3:
-        command = 0x46;
+        command = 0x44;
         break;
     default:
         command = 0x40;  // Default value if no case matches
         break;
 }
-// Include channel in command0x40| (channel & 0x03)44 46 40 43
+
     uint8_t high_byte = (value >> 8) & 0x0F;  // Upper 4 bits of 12-bit value
     uint8_t low_byte = value & 0xFF;          // Lower 8 bits
 

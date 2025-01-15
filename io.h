@@ -5,6 +5,6 @@
 #include "driver/gpio.h"
 float adcvoltage(int channel);
 void dacchannels(int channel, uint16_t value);
-int dichannel(int i);
+unsigned int dichannel(int i);
 void dochannel(int i, bool set);
 #endif
